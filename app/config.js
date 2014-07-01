@@ -17,6 +17,7 @@ db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
     db.knex.schema.createTable('urls', function (link) {
       link.increments('id').primary();
+      link.integer('user_id').references('id').inTable('users');
       link.string('url', 255);
       link.string('base_url', 255);
       link.string('code', 100);
@@ -44,6 +45,29 @@ db.knex.schema.hasTable('clicks').then(function(exists) {
 /************************************************************/
 // Add additional schema definitions below
 /************************************************************/
+db.knex.schema.hasTable('users').then(function (exists) {
+  if (!exists) {
+    db.knex.schema.createTable('users', function (user) {
+      user.increments('id').primary();
+      user.string('username', 100);
+      user.string('password', 100);
+      user.timestamps();
+    }).then(function (table) {
+      console.log('Created Table', table);
+    });
+  }
+});
 
-
+db.knex.schema.hasTable('sessions').then(function (exists) {
+  if (!exists) {
+    db.knex.schema.createTable('sessions', function (session) {
+      session.increments('id').primary();
+      session.integer('user_id').references('id').inTable('users');
+      session.integer('expiration');
+      session.timestamps();
+    }).then(function (table) {
+      console.log('Created Table', table);
+    });
+  }
+});
 module.exports = db;

@@ -19,56 +19,113 @@ app.configure(function() {
   app.use(express.static(__dirname + '/public'));
 });
 
+// app.get('/', function(req, res) {
+//   res.render('index');
+// });
+
+// app.get('/create', function(req, res) {
+//   res.render('index');
+// });
+
+// app.get('/links', function(req, res) {
+//   Links.reset().fetch().then(function(links) {
+//     res.send(200, links.models);
+//   });
+// });
+
+// app.post('/links', function(req, res) {
+//   var uri = req.body.url;
+
+//   if (!util.isValidUrl(uri)) {
+//     console.log('Not a valid url: ', uri);
+//     return res.send(404);
+//   }
+
+//   new Link({ url: uri }).fetch().then(function(found) {
+//     if (found) {
+//       res.send(200, found.attributes);
+//     } else {
+//       util.getUrlTitle(uri, function(err, title) {
+//         if (err) {
+//           console.log('Error reading URL heading: ', err);
+//           return res.send(404);
+//         }
+
+//         var link = new Link({
+//           url: uri,
+//           title: title,
+//           base_url: req.headers.origin
+//         });
+
+//         link.save().then(function(newLink) {
+//           Links.add(newLink);
+//           res.send(200, newLink);
+//         });
+//       });
+//     }
+//   });
+// });
+
+/************************************************************/
+// Write your authentication routes here
+/************************************************************/
+
+
 app.get('/', function(req, res) {
-  res.render('index');
+  res.render('signup');
 });
 
-app.get('/create', function(req, res) {
-  res.render('index');
+app.get('/login', function (req, res) {
+  res.render('login');
 });
 
-app.get('/links', function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
-  })
-});
+app.post('/signup', function (req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
 
-app.post('/links', function(req, res) {
-  var uri = req.body.url;
+  new User({username: username, password: password}).fetch().then(function (found) {
+    if (found) {
+      res.redirect('/login');
+    } else {
+      console.log('@@@@@@@@@@');
 
+      var user = new User ({
+        username: username,
+        password: password
+      });
+
+      user.save().then(function(){
+        console.log('@@@@@@@@@@');
+        res.redirect('/index');
+      });
+    }
+
+  });
+
+  console.log(username + password);
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
     return res.send(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) {
-    if (found) {
-      res.send(200, found.attributes);
-    } else {
-      util.getUrlTitle(uri, function(err, title) {
-        if (err) {
-          console.log('Error reading URL heading: ', err);
-          return res.send(404);
-        }
 
-        var link = new Link({
-          url: uri,
-          title: title,
-          base_url: req.headers.origin
-        });
-
-        link.save().then(function(newLink) {
-          Links.add(newLink);
-          res.send(200, newLink);
-        });
-      });
-    }
-  });
 });
 
-/************************************************************/
-// Write your authentication routes here
-/************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
