@@ -17,6 +17,9 @@ app.configure(function() {
   app.use(partials());
   app.use(express.bodyParser())
   app.use(express.static(__dirname + '/public'));
+
+  app.use(express.cookieParser('SECRET'));
+  app.use(express.session());
 });
 
 // app.get('/', function(req, res) {
@@ -70,14 +73,35 @@ app.configure(function() {
 // Write your authentication routes here
 /************************************************************/
 
+var restrict = function (req, res, next) {
 
-app.get('/', function(req, res) {
-  res.render('signup');
+  if (req.session.user_id) {
+    next();
+  } else {
+    req.session.error = 'Access denied!';
+    res.redirect('/login');
+  }
+};
+
+app.get('/', restrict, function(req, res) {
+  res.render('index');
+});
+
+app.get('/links', function(req, res) {
+  Links.query('where', 'user_id', '=', req.session.user_id).fetch().then(function(links) {
+    res.send(200, links.models);
+  });
 });
 
 app.get('/login', function (req, res) {
   res.render('login');
 });
+
+app.get('/signup', function (req, res) {
+  res.render('signup');
+});
+
+
 
 app.post('/signup', function (req, res) {
   var username = req.body.username;
@@ -87,33 +111,100 @@ app.post('/signup', function (req, res) {
     if (found) {
       res.redirect('/login');
     } else {
-      console.log('@@@@@@@@@@');
-
       var user = new User ({
         username: username,
         password: password
       });
 
-      user.save().then(function(){
-        console.log('@@@@@@@@@@');
-        res.redirect('/index');
+      user.save().then(function(model){
+        req.session.regenerate(function(){
+          console.log(model);
+          console.log(model.attributes);
+          req.session.user_id = model.attributes.id;
+          res.redirect('/');
+        });
       });
     }
-
   });
+});
 
-  console.log(username + password);
-  if (!util.isValidUrl(uri)) {
-    console.log('Not a valid url: ', uri);
-    return res.send(404);
-  }
+app.post('/login', function (req, res) {
+  // query validity of login from user table
+  var username = req.body.username;
+  var password = req.body.password;
 
+  new User({username: username}).fetch().then(function (user) {
+    console.log('test database', user.attributes.password);
 
+    if (user.attributes.password === password) {
+
+      console.log('pass ?')
+      req.session.regenerate(function(){
+
+        req.session.user_id = user.attributes.id;
+
+        res.redirect('/');
+
+      });
+    }
+  });
 });
 
 
+// app.get('/links', function(req, res) {
+//   Links.reset().fetch().then(function(links) {
+//     res.send(200, links.models);
+//   });
+// });
 
 
+app.post('/links', restrict, function (req, res) {
+  var uri = req.body.url;
+  console.log('this is the request body', req.body);
+  var user_id = req.session.user_id;
+  if (!util.isValidUrl(uri)) {
+      console.log('Not a valid url: ', uri);
+      return res.send(404);
+  }
+
+  new Link({ url: uri, user_id: user_id}).fetch().then(function(found) {
+    if (found) {
+      res.send(200, found.attributes);
+    } else {
+      util.getUrlTitle(uri, function(err, title) {
+        if (err) {
+          console.log('Error reading URL heading: ', err);
+          return res.send(404);
+        }
+
+        var link = new Link({
+          url: uri,
+          title: title,
+          user_id: user_id,
+          base_url: req.headers.origin
+        });
+
+        link.save().then(function(newLink) {
+          Links.add(newLink);
+          res.send(200, newLink);
+        });
+      });
+    }
+  });
+});
+
+
+// app.get('/create', function(req, res) {
+//   res.render('index');
+// });
+
+
+
+  // console.log(username + password);
+  // if (!util.isValidUrl(uri)) {
+  //   console.log('Not a valid url: ', uri);
+  //   return res.send(404);
+  // }
 
 
 
